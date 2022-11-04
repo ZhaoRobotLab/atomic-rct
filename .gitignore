@@ -1,2 +1,9 @@
 .DS_store
 __pycache__/
+.venv*
+*.csv
+data/*
+models/comet_atomic2020_bart/comet-atomic_2020_BART_aaai
+models/comet_atomic2020_bart/corenlp_server*
+wandb/
+*.txt

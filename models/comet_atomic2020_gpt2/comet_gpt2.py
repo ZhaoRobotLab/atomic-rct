@@ -137,7 +137,7 @@ def main():
     tokenizer.add_special_tokens({'pad_token': '[PAD]'})
 
     train_dataset = pd.read_csv(
-        os.environ.get('TRAIN_DATA_PATH', "/tmp/gpt2data/atomic_train.tsv"),
+        os.path.join('data', 'atomic2020data', 'atomic2020_data-feb2021','train.tsv'),
         encoding='latin-1', sep="\t")
     if DEBUG:
         train_dataset = train_dataset.head(NUM_INST)
@@ -148,7 +148,8 @@ def main():
     logger.info(train_dataset.head())
     logger.info(train_dataset.tail_event)
 
-    val_dataset = pd.read_csv(os.environ.get('DEV_DATA_PATH', "/tmp/gpt2data/atomic_dev.tsv"), encoding='latin-1', sep="\t")
+    val_dataset = pd.read_csv(os.path.join('data', 'atomic2020data', 'atomic2020_data-feb2021','dev.tsv'),
+         encoding='latin-1', sep="\t")
     if DEBUG:
         val_dataset = val_dataset.head(NUM_INST)
     val_dataset = val_dataset[['head_event', 'tail_event', 'relation']]
@@ -157,7 +158,8 @@ def main():
     logger.info(val_dataset.tail_event)
     logger.info(val_dataset.head())
 
-    test_dataset = pd.read_csv(os.environ.get('TEST_DATA_PATH', "/tmp/gpt2data/atomic_test.tsv"), encoding='latin-1', sep="\t")
+    test_dataset = pd.read_csv(os.path.join('data', 'atomic2020data', 'atomic2020_data-feb2021','test.tsv'),
+         encoding='latin-1', sep="\t")
     if DEBUG:
         test_dataset = test_dataset.head(NUM_INST)
     test_dataset = test_dataset[['head_event', 'tail_event', 'relation']]
@@ -167,7 +169,7 @@ def main():
     logger.info(test_dataset.tail_event)
     logger.info(test_dataset.head())
 
-    val_dataset_mini = pd.read_csv(os.environ.get('DEV_DATA_PATH', "/tmp/gpt2data/atomic_dev.tsv"), encoding='latin-1', sep="\t")
+    val_dataset_mini = pd.read_csv(os.path.join('data', 'atomic2020data', 'atomic2020_data-feb2021','dev.tsv'), encoding='latin-1', sep="\t")
     if DEBUG:
         val_dataset_mini = val_dataset_mini.head(5)
     val_dataset_mini = val_dataset_mini.sample(n=min(int(val_dataset_mini.size / 3), 100),
@@ -223,7 +225,7 @@ def main():
             tokenizer.save_pretrained('{}/checkpoint_{}'.format(config.OUT_DIR, epoch))
         model.save_pretrained('/models')
 
-    if config.DO_PRED:
+    if config.DO_PRED:  
 
         if config.PRED_FILE.endswith("jsonl"):
             records = read_jsonl_lines(config.PRED_FILE)
