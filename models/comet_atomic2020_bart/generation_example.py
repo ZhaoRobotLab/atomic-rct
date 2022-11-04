@@ -7,6 +7,7 @@ from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from utils import calculate_rouge, use_task_specific_params, calculate_bleu_score, trim_batch
 import pandas as pd
 from openie import StanfordOpenIE
+import os
 
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
@@ -115,20 +116,20 @@ def join_sent(s1, s2):
 
 if __name__ == "__main__":
     # get relations csv
-    csv_name = '../../data/C1007_VC_3_FullCon_Wk01_Day1_100118.ft_DS2.csv'
+    csv_name = os.path.join('Manual_Trans','Manual_Trans','C1007_VC_3_FullCon_Wk01_Day3_100318.csv')
     df = pd.read_csv(csv_name)
 
     # get rid of weird floats
     df.dropna(inplace=True)
 
     # group by role
-    grouped = df.groupby(df.role.ne(df.role.shift()).cumsum(), as_index=False).agg({'role': 'first', 'asr': ' '.join})
-    grouped.pair = list(map(join_sent, grouped.asr, grouped.asr.shift()))
+    grouped = df.groupby(df.role.ne(df.role.shift()).cumsum(), as_index=False).agg({'role': 'first', 'text': ' '.join})
+    grouped.pair = list(map(join_sent, grouped.text, grouped.text.shift()))
     print(grouped.pair)
 
     # construct tuples
     print("model loading ...")
-    comet = Comet("./comet-atomic_2020_BART_aaai")
+    comet = Comet(os.path.join('.', 'comet-atomic_2020_BART_aaai'))
     comet.model.zero_grad()
     print("model loaded")
     properties = {
@@ -138,6 +139,7 @@ if __name__ == "__main__":
     with StanfordOpenIE(properties=properties) as client:
         new_df = pd.DataFrame(columns=['queries', 'results'])
 
+        save_res_df = pd.DataFrame(columns=['text', 'queries', 'results'])
         with open('results.txt', 'w+') as f:
             for i in range(len(df)):
                 offset = 5
@@ -147,7 +149,7 @@ if __name__ == "__main__":
                 queries = []
                 queries_fixed = []
                 # for row in rows:
-                text = ' '.join(rows.asr)
+                text = ' '.join(rows.text)
                 print(text)
                 # print('Text: %s.' % text)
                 try:
@@ -163,6 +165,10 @@ if __name__ == "__main__":
                     f.write('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nQUERIES FIXED\n~~~~~~~~~~~~~~~~~~\n{}\n'.format(queries_fixed))
                     results = comet.generate(queries_fixed, decode_method="greedy", num_generate=2)
                     f.write('{}\n'.format(results))
+
+                    # save queries/results
+                    save_res_df = pd.concat([save_res_df, {'text': text, 'queries': queries, 'results': results}])
+                    print(save_res_df)
                 except AttributeError as e:
                     print(e)  
         
