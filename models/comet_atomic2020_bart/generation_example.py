@@ -116,7 +116,7 @@ def join_sent(s1, s2):
 
 if __name__ == "__main__":
     # get relations csv
-    csv_name = os.path.join('Manual_Trans','Manual_Trans','C1007_VC_3_FullCon_Wk01_Day3_100318.csv')
+    csv_name = os.path.join('..', '..', 'data', 'Manual_Trans','C1007_VC_3_FullCon_Wk01_Day3_100318.csv')
     df = pd.read_csv(csv_name)
 
     # get rid of weird floats
@@ -167,7 +167,8 @@ if __name__ == "__main__":
                     f.write('{}\n'.format(results))
 
                     # save queries/results
-                    save_res_df = pd.concat([save_res_df, {'text': text, 'queries': queries, 'results': results}])
+                    save_res_df = pd.concat([save_res_df, pd.DataFrame({'text': text, 'queries': queries, 'results': results})], ignore_index=True)
+                    save_res_df.to_csv('results.csv')
                     print(save_res_df)
                 except AttributeError as e:
                     print(e)  
