@@ -11,3 +11,4 @@ models/comet_atomic2020_bart/Manual_Trans.zip
 *.zip
 *.gz
 models/comet_atomic2020_bart/comet-atomic_2020_BART/
+*.props
