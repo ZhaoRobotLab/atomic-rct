@@ -118,42 +118,44 @@ if __name__ == "__main__":
     # set environment var for java
     java_path = 'C:\\Program Files (x86)\\Java\\jdk1.8.0_301\\bin\\java.exe'
     os.environ['JAVAHOME'] = java_path
-    # os.environ["CORENLP_HOME"] = 'C:\\Users\\rbfre\\.stanfordnlp_resources\\stanford-corenlp-4.1.0\\*'
-    # get relations csv, loop on the directory
-    # data\Manual_Trans\C1007_VC_3_FullCon_Wk01_Day3_100318.csv
+
     datadir = os.path.join('data', 'Manual_Trans')
+
     files = os.listdir(datadir)
-    for file in files:
-        if not file.endswith('.csv'):
-            continue
-        csv_name = os.path.join(os.path.join(datadir, file))
-        df = pd.read_csv(csv_name)
 
-        # get rid of weird floats
-        df.dropna(inplace=True)
+    properties = {
+        'openie.affinity_probability_cap': 2 / 3,
+        # 'memory': '1G',
+        # 'timeout': 1_000_000
+    }
 
-        # group by role
-        grouped = df.groupby(df.role.ne(df.role.shift()).cumsum(), as_index=False).agg({'role': 'first', 'text': ' '.join})
-        grouped.pair = list(map(join_sent, grouped.text.shift(), grouped.text))
-        print(grouped.pair)
+     # construct tuples
+    print("model loading ...")
+    comet = Comet(os.path.join('models','comet_atomic2020_bart','comet-atomic_2020_BART_aaai'))
+    comet.model.zero_grad()
+    print("model loaded")
 
-        # make rounds
-        rounds = []
-        for indx in range(0, len(grouped)-1, 2):
-            rounds.append(join_sent(grouped.iloc[indx].text, grouped.iloc[indx+1].text))
+    with StanfordOpenIE(properties=properties) as client:
+        for file in files:
+            if not file.endswith('.csv'):
+                continue
+            csv_name = os.path.join(os.path.join(datadir, file))
+            df = pd.read_csv(csv_name)
 
-        # construct tuples
-        print("model loading ...")
-        comet = Comet(os.path.join('models','comet_atomic2020_bart','comet-atomic_2020_BART_aaai'))
-        comet.model.zero_grad()
-        print("model loaded")
-        properties = {
-            'openie.affinity_probability_cap': 2 / 3,
-            # 'memory': '1G',
-            # 'timeout': 1_000_000
-        }
+            # get rid of weird floats
+            df.dropna(inplace=True)
 
-        with StanfordOpenIE(properties=properties) as client:
+            # group by role
+            grouped = df.groupby(df.role.ne(df.role.shift()).cumsum(), as_index=False).agg({'role': 'first', 'text': ' '.join})
+            grouped.pair = list(map(join_sent, grouped.text.shift(), grouped.text))
+            print(grouped.pair)
+
+            # make rounds
+            rounds = []
+            for indx in range(0, len(grouped)-1, 2):
+                rounds.append(join_sent(grouped.iloc[indx].text, grouped.iloc[indx+1].text))
+
+            
             new_df = pd.DataFrame(columns=['queries', 'results'])
 
             save_res_df = pd.DataFrame(columns=['text', 'round', 'res_dict_raw', 'res_dict_fixed'])
@@ -173,14 +175,20 @@ if __name__ == "__main__":
                 print(text)
                 # print('Text: %s.' % text)
                 try:
-                    for triple in client.annotate(text, properties=properties):
-                        print(type(triple))
-                        print(triple)
-                        queries.append('{} {}'.format(triple['subject'], triple['relation']))
-                        queries_fixed.append('{} {}'.format('PersonX', triple['relation']))
+                    chunk_size = 50
+                    words_arr = text.split(' ')
+                    print(text)
+                    for i in range(0, len(words_arr), chunk_size):
+                        ann_text = ' '.join(words_arr[i:i+chunk_size])
+                        print(ann_text)
+                        for triple in client.annotate(ann_text, properties=properties):
+                            print(type(triple))
+                            print(triple)
+                            queries.append('{} {}'.format(triple['subject'], triple['relation']))
+                            queries_fixed.append('{} {}'.format('PersonX', triple['relation']))
 
-                    results_raw = comet.generate(queries, decode_method="greedy", num_generate=1)
-                    results_fixed = comet.generate(queries_fixed, decode_method="greedy", num_generate=1)
+                    results_raw = comet.generate(queries, num_generate=1)
+                    results_fixed = comet.generate(queries_fixed, num_generate=1)
                     
                     # save queries/results
                     #make dictionary for storing results

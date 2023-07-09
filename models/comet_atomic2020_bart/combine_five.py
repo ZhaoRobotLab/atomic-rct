@@ -4,7 +4,7 @@ import os
 src_dir = 'results'
 target_dir = os.path.join('results', 'combined')
 
-files = os.listdir(target_dir)
+files = os.listdir(src_dir)
 for file in files:
   if not file.endswith('.csv'):
     continue
@@ -20,13 +20,13 @@ for file in files:
   new_df = pd.DataFrame(columns=['text', 'start_round', 'end_round', 'res_dict_raw', 'res_dict_fixed'])
   for indx, row in df.iterrows():
     if c % 5 == 0 and c != 0:
-      new_df.concat([new_df, pd.DataFrame.from_dict({
+      new_df = pd.concat([new_df, pd.DataFrame.from_dict({
         'text': curr_text,
         'start_round': start_round,
         'end_round': c-1,
-        'res_dict_raw': curr_res_dict_raw,
-        'res_dict_fixed': curr_res_dict_fixed,  
-        })])
+        'res_dict_raw': [curr_res_dict_raw],
+        'res_dict_fixed': [curr_res_dict_fixed],  
+        })], ignore_index=True)
 
       curr_text = ''
       start_round = c
@@ -35,8 +35,10 @@ for file in files:
       curr_res_dict_fixed = {}
 
     curr_text += row.text + ' '
-    curr_res_dict_raw = {**curr_res_dict_raw, **row.res_dict_raw}
-    curr_res_dict_fixed = {**curr_res_dict_fixed, **row.res_dict_fixed}
-    
+    curr_res_dict_raw = {**curr_res_dict_raw, **eval(row.res_dict_raw)}
+    curr_res_dict_fixed = {**curr_res_dict_fixed, **eval(row.res_dict_fixed)}
+
+    c += 1
+
   print(new_df)
   new_df.to_csv(os.path.join(target_dir, file))
